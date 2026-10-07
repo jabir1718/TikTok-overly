@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Real-Time Live Overlay</title>
+    <!-- TikTok Live Connector Browser Dependency -->
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body { background: transparent; height: 100vh; overflow: hidden; display: flex; align-items: flex-end; padding: 20px; }
+        #live-overlay-panel { width: 100%; max-width: 420px; height: 400px; display: flex; flex-direction: column-reverse; gap: 10px; overflow-y: hidden; }
+        .event-card { display: flex; align-items: center; padding: 10px 14px; border-radius: 30px; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(5px); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); transform: translateX(-100%); animation: slideInLeft 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; max-width: 100%; }
+        .gift-card { border: 2px solid #ff007f; background: linear-gradient(135deg, rgba(255, 0, 127, 0.25), rgba(0, 0, 0, 0.8)); box-shadow: 0 0 15px rgba(255, 0, 127, 0.6); animation: slideInLeft 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, pulseGlow 1.5s infinite ease-in-out; }
+        .profile-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #00f2fe; object-fit: cover; margin-right: 12px; }
+        .gift-card .profile-img { border-color: #ff007f; }
+        .details { display: flex; flex-direction: column; flex: 1; }
+        .username { font-weight: bold; color: #00f2fe; font-size: 0.95rem; }
+        .gift-card .username { color: #fffb00; }
+        .action-text { font-size: 0.8rem; color: #e0e0e0; }
+        .gift-badge { display: flex; align-items: center; gap: 5px; margin-left: 10px; background: rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 20px; }
+        .gift-icon { font-size: 1.3rem; animation: bounceIcon 0.6s infinite alternate; }
+        .gift-count { font-weight: 900; color: #ff007f; font-size: 1.1rem; text-shadow: 0 0 5px #fff; }
+        @keyframes slideInLeft { to { transform: translateX(0); } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 12px rgba(255, 0, 127, 0.5); } 50% { box-shadow: 0 0 22px rgba(255, 0, 127, 0.9); } }
+        @keyframes bounceIcon { from { transform: translateY(0) scale(1); } to { transform: translateY(-4px) scale(1.2); } }
+    </style>
+</head>
+<body>
+    <div id="live-overlay-panel"></div>
+    <script>
+        // Aapka TikTok username perfectly set hai
+        const TIKTOK_USERNAME = "new2027music"; 
+        const panel = document.getElementById('live-overlay-panel');
+        const giftEmojis = { "rose": "🌹", "finger heart": "💖", "tiktok": "🪙", "diamond": "💎", "cap": "🧢", "ice cream": "🍦" };
+        if (typeof TikTokLiveConnector !== 'undefined') {
+            const tiktokConnection = new TikTokLiveConnector(TIKTOK_USERNAME);
+            tiktokConnection.connect().catch(err => console.error("Failed to connect", err));
+            tiktokConnection.on('member', (data) => { createOverlayCard(data, "Welcome! Thanks for joining 🙌", false); });
+            tiktokConnection.on('gift', (data) => {
+                if (data.giftId && data.monitor_extra && data.monitor_extra.repeat_end === 0) return;
+                const giftName = data.giftName.toLowerCase();
+                const icon = giftEmojis[giftName] || "🎁"; 
+                createOverlayCard(data, `Sent ${data.giftName}!`, true, icon, data.repeatCount);
+            });
+        }
+        function createOverlayCard(userObj, text, isGift, giftIcon = "", count = 1) {
+            const card = document.createElement('div');
+            card.className = isGift ? "event-card gift-card" : "event-card";
+            const profilePic = userObj.profilePictureUrl || "https://tiktok.com";
+            const uniqueName = userObj.uniqueId;
+            let cardStructure = `<img src="${profilePic}" class="profile-img"><div class="details"><span class="username">@${uniqueName}</span><span class="action-text">${text}</span></div>`;
+            if (isGift) cardStructure += `<div class="gift-badge"><span class="gift-icon">${giftIcon}</span><span class="gift-count">x${count}</span></div>`;
+            card.innerHTML = cardStructure; panel.appendChild(card);
+            setTimeout(() => { card.style.transition = "opacity 0.4s"; card.style.opacity = "0"; setTimeout(() => card.remove(), 400); }, 7000);
+        }
+    </script>
+</body>
+</html>
